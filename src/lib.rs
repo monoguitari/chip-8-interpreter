@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::{self, Error, Read};
 
-
 // NOTE for self: u8 = 1byte, u16 = 2bytes
 // TODO: assign scancodes for keypress
 
@@ -11,7 +10,7 @@ const RAM_SIZE: usize = 4096; // 0x1FF = 4096 bytes
 const VARIABLE_REGISTER_SIZE: usize = 16;
 const STACK_SIZE: usize = 16; // OG interpreter holds 16 2-byte entries (we have 2 16 bytes)
 const KEYPAD_SIZE: usize = 16; // 4x4 keypad
-
+const ROM_START: usize = 0x200;
 const FONT_TABLE: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -82,7 +81,7 @@ impl Chip8 {
         file.read_to_end(&mut file_buffer)?;
 
         // Define the memory range for loading the ROM
-        let start_index = 0x200; // CHIP-8 programs start at 0x200 (512)
+        let start_index = ROM_START; // CHIP-8 programs start at 0x200 (512)
         let end_index = (start_index + file_buffer.len()).min(RAM_SIZE); // Prevent overflow
 
         assert!(end_index <= RAM_SIZE, "End index exceeds memory size!");
@@ -105,6 +104,57 @@ impl Chip8 {
         println!("ROM loaded into memory!");
         //println!("Memory: {:?}", self.memory); //debugging statement for memory at this point
         Ok(())
+    }
+
+    pub fn run(&mut self) {
+        loop {
+            let instruction = self.fetch();
+            self.decode(instruction);
+            //println!("Instruction: {}", instruction);
+            //break;
+        }
+    }
+
+    // Uses program counter to retreive next instruction
+    fn fetch(&mut self) -> String {
+        // TODO: fetch the next instruction from memory
+        let high_byte = self.memory[self.program_counter as usize] as u16;
+        let low_byte = self.memory[(self.program_counter + 1) as usize] as u16;
+
+        // Combine the two bytes into a single 16-bit instruction
+        let instruction = (high_byte << 8) | low_byte;
+        self.program_counter += 2;
+        format!("{:04X}", instruction)
+    }
+
+    fn decode(&mut self, instruction: String) {
+        let opcode = u16::from_str_radix(&instruction, 16).unwrap();
+        //println!("Instruction: {:?}", instruction);
+        let first_nibble = (opcode & 0xF000) >> 12; 
+        let x = ((opcode & 0x0F00) >> 8) as usize; // Second nibble
+        let y = ((opcode & 0x00F0) >> 4) as usize; // Third nibble
+        let n = (opcode & 0x000F) as u8; // Fourth nibble
+        let nn = (opcode & 0x00FF) as u8; // Last byte
+        let nnn = opcode & 0x0FFF;
+
+        match first_nibble {
+            0x0 => {
+                println!("Sys Instruction")
+            },
+            0x1 => {
+                println!("Jump instruction")
+            },
+            0x6 => {
+                println!("set VX instructoin")
+            },
+            0xD => {
+                println!("Draw instructoin")
+            },
+            _ => {
+                println!("Unknown instruction")
+            }
+        }
+        // TODO: decode instruction based on nub
     }
 }
 

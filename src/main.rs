@@ -12,4 +12,6 @@ fn main() {
 
     //println!("{}", file.unwrap());
     _ = interpreter.load_rom(file_path);
+
+    _ = interpreter.run();
 }
