@@ -130,7 +130,7 @@ impl Chip8 {
     fn decode(&mut self, instruction: String) {
         let opcode = u16::from_str_radix(&instruction, 16).unwrap();
         //println!("Instruction: {:?}", instruction);
-        let first_nibble = (opcode & 0xF000) >> 12; 
+        let first_nibble = (opcode & 0xF000) >> 12;
         let x = ((opcode & 0x0F00) >> 8) as usize; // Second nibble
         let y = ((opcode & 0x00F0) >> 4) as usize; // Third nibble
         let n = (opcode & 0x000F) as u8; // Fourth nibble
@@ -138,18 +138,60 @@ impl Chip8 {
         let nnn = opcode & 0x0FFF;
 
         match first_nibble {
-            0x0 => {
-                println!("Sys Instruction")
+            0x0 => match opcode {
+                0x00E0 => {
+                    //TODO: clear screen
+                }
+                _ => {
+                    eprintln!("Unkown command");
+                }
             },
             0x1 => {
-                println!("Jump instruction")
-            },
+                //TODO: jump
+            }
+            0x2 => {
+                //TODO: subroutine
+            }
+            0x3 => {
+                //TODO: conditoinal skip
+            }
+            0x4 => {
+                //TODO: conditoinal skip
+            }
+            0x5 => {
+                //TODO: conditional skip
+            }
             0x6 => {
-                println!("set VX instructoin")
-            },
+                println!("set VX instructoin");
+                //TODO: set
+            }
+            0x7 => {
+                //TODO: add
+            }
+            0x8 => {
+                //logical group
+            }
+            0x9 => {
+                //TODO: skip conditionally
+            }
+            0xA => {
+                //something
+            }
+            0xB => {
+                //something
+            }
+            0xC => {
+                //something
+            }
             0xD => {
                 println!("Draw instructoin")
-            },
+            }
+            0xE => {
+                //something
+            }
+            0xF => {
+                //something
+            }
             _ => {
                 println!("Unknown instruction")
             }
