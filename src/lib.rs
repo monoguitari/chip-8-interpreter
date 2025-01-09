@@ -1,14 +1,18 @@
 use std::fs::File;
-use std::io::{self, Read, Error};
+use std::io::{self, Error, Read};
+
+
+// NOTE for self: u8 = 1byte, u16 = 2bytes
+// TODO: assign scancodes for keypress
 
 const DISPLAY_WIDTH: usize = 64;
 const DISPLAY_HEIGHT: usize = 32;
-const RAM_SIZE: usize = 4096;
+const RAM_SIZE: usize = 4096; // 0x1FF = 4096 bytes
 const VARIABLE_REGISTER_SIZE: usize = 16;
-const STACK_SIZE: usize = 2; // OG interpreter holds 16 2-byte entries (we have 2 16 bytes)
+const STACK_SIZE: usize = 16; // OG interpreter holds 16 2-byte entries (we have 2 16 bytes)
 const KEYPAD_SIZE: usize = 16; // 4x4 keypad
 
-const _FONT_TABLE: [u8; 80] = [
+const FONT_TABLE: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -24,7 +28,7 @@ const _FONT_TABLE: [u8; 80] = [
     0xF0, 0x80, 0x80, 0x80, 0xF0, // C
     0xE0, 0x90, 0x90, 0x90, 0xE0, // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 ];
 
 #[derive(Debug)]
@@ -33,7 +37,7 @@ pub struct Chip8 {
     pub display: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     pub program_counter: u16,
     pub index_register: u16,
-    pub stack: [u16; STACK_SIZE], // will be list of u8
+    pub stack: [u16; STACK_SIZE], // u16 = 2 bytes
     pub delay_timer: u8,
     pub sound_timer: u8,
     pub variable_registers: [u8; VARIABLE_REGISTER_SIZE],
@@ -42,7 +46,7 @@ pub struct Chip8 {
 
 impl Chip8 {
     pub fn new() -> Self {
-        Chip8 {
+        let mut chip8 = Chip8 {
             memory: [0; RAM_SIZE],
             display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             program_counter: 0x200,
@@ -52,8 +56,22 @@ impl Chip8 {
             sound_timer: 0,
             variable_registers: [0; VARIABLE_REGISTER_SIZE],
             keypad: [false; KEYPAD_SIZE],
+        };
+        chip8.load_font_table();
+        chip8
+    }
 
-        }
+    pub fn load_font_table(&mut self) {
+        const FONT_START_ADDRESS: usize = 0x050;
+        const FONT_END_ADDRESS: usize = 0x0A0; // NOTE: want up to 0x09F, but end index is exclusive, so
+                                               // we make it 0x0A0
+
+        // Ensure the font table fits within the specified range
+        assert_eq!(FONT_TABLE.len(), FONT_END_ADDRESS - FONT_START_ADDRESS);
+
+        self.memory[FONT_START_ADDRESS..FONT_END_ADDRESS].copy_from_slice(&FONT_TABLE);
+
+        println!("Font table loaded into memory!");
     }
 
     pub fn load_rom(&mut self, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -64,10 +82,16 @@ impl Chip8 {
         file.read_to_end(&mut file_buffer)?;
 
         // Define the memory range for loading the ROM
-        let start_index = 512; // CHIP-8 programs start at 0x200 (512)
-        let end_index = (start_index + file_buffer.len()).min(4096); // Prevent overflow
+        let start_index = 0x200; // CHIP-8 programs start at 0x200 (512)
+        let end_index = (start_index + file_buffer.len()).min(RAM_SIZE); // Prevent overflow
 
-        if file_buffer.len() > 4096 - start_index {
+        assert!(end_index <= RAM_SIZE, "End index exceeds memory size!");
+        assert!(
+            end_index - start_index == file_buffer.len().min(RAM_SIZE - start_index),
+            "Mismatch between memory range and ROM size!"
+        );
+
+        if file_buffer.len() > RAM_SIZE - start_index {
             return Err(Box::new(Error::new(
                 io::ErrorKind::InvalidData,
                 "ROM size exceeds available memory",
@@ -75,11 +99,11 @@ impl Chip8 {
         }
 
         // Copy ROM data into memory
-        self.memory[start_index..end_index].copy_from_slice(&file_buffer[..(end_index - start_index)]);
+        self.memory[start_index..end_index]
+            .copy_from_slice(&file_buffer[..(end_index - start_index)]);
 
         println!("ROM loaded into memory!");
         //println!("Memory: {:?}", self.memory); //debugging statement for memory at this point
-
         Ok(())
     }
 }
