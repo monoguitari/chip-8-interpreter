@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::{self, Read, Error};
+
 const DISPLAY_WIDTH: usize = 64;
 const DISPLAY_HEIGHT: usize = 32;
 const RAM_SIZE: usize = 4096;
@@ -51,6 +54,33 @@ impl Chip8 {
             keypad: [false; KEYPAD_SIZE],
 
         }
+    }
+
+    pub fn load_rom(&mut self, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut file = File::open(file_path)?; // Open the ROM file
+
+        // Read the file into a buffer
+        let mut file_buffer = Vec::new();
+        file.read_to_end(&mut file_buffer)?;
+
+        // Define the memory range for loading the ROM
+        let start_index = 512; // CHIP-8 programs start at 0x200 (512)
+        let end_index = (start_index + file_buffer.len()).min(4096); // Prevent overflow
+
+        if file_buffer.len() > 4096 - start_index {
+            return Err(Box::new(Error::new(
+                io::ErrorKind::InvalidData,
+                "ROM size exceeds available memory",
+            )));
+        }
+
+        // Copy ROM data into memory
+        self.memory[start_index..end_index].copy_from_slice(&file_buffer[..(end_index - start_index)]);
+
+        println!("ROM loaded into memory!");
+        //println!("Memory: {:?}", self.memory); //debugging statement for memory at this point
+
+        Ok(())
     }
 }
 
