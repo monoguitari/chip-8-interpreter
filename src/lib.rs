@@ -1,5 +1,9 @@
-const _DISPLAY_WIDTH: u32 = 64;
-const _DISPLAY_HEIGHT: u32 = 32;
+const DISPLAY_WIDTH: usize = 64;
+const DISPLAY_HEIGHT: usize = 32;
+const RAM_SIZE: usize = 4096;
+const VARIABLE_REGISTER_SIZE: usize = 16;
+const STACK_SIZE: usize = 2; // OG interpreter holds 16 2-byte entries (we have 2 16 bytes)
+const KEYPAD_SIZE: usize = 16; // 4x4 keypad
 
 const _FONT_TABLE: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -20,17 +24,39 @@ const _FONT_TABLE: [u8; 80] = [
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
 
-#[warn(dead_code)]
-fn fetch() {
-
+#[derive(Debug)]
+pub struct Chip8 {
+    pub memory: [u8; RAM_SIZE],
+    pub display: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+    pub program_counter: u16,
+    pub index_register: u16,
+    pub stack: [u16; STACK_SIZE], // will be list of u8
+    pub delay_timer: u8,
+    pub sound_timer: u8,
+    pub variable_registers: [u8; VARIABLE_REGISTER_SIZE],
+    pub keypad: [bool; KEYPAD_SIZE],
 }
 
-#[warn(dead_code)]
-fn decode() {
+impl Chip8 {
+    pub fn new() -> Self {
+        Chip8 {
+            memory: [0; RAM_SIZE],
+            display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+            program_counter: 0x200,
+            index_register: 0,
+            stack: [0; STACK_SIZE],
+            delay_timer: 0,
+            sound_timer: 0,
+            variable_registers: [0; VARIABLE_REGISTER_SIZE],
+            keypad: [false; KEYPAD_SIZE],
 
+        }
+    }
 }
 
-#[warn(dead_code)]
-fn execute() {
-    // may just be the opcode operation inside decode switch case
+impl Default for Chip8 {
+    /// Provides a default implementation for the CHIP-8 interpreter.
+    fn default() -> Self {
+        Self::new()
+    }
 }
